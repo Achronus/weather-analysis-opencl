@@ -1,5 +1,7 @@
 # Weather Analysis OpenCl C++
 
+![Large dataset results](results/large-dataset.png)
+
 An application that retrieves temperature data from a text file and returns its statistical values using Parallel Programming in OpenCL and C++.
 
 The application can be executed through the 'Local windows debugger' and acts as a console application.
