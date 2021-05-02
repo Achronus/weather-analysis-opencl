@@ -27,3 +27,11 @@ Additional information displayed within the console includes:
 - Number of records with padding increase
 - Individual and total kernel execution times
 - Profiling information: queued, submitted, executed and total
+
+## Dependencies
+
+This project requires a Microsoft Visual Studio 2019 environment, with the C++ programming language packages enabled. Additionally, it uses [Intel's OpenCL SDK](https://software.intel.com/content/www/us/en/develop/tools/opencl-sdk.html) that must be downloaded.
+
+With the core packages install, OpenCL requires runtime drivers to run the OpenCL code on your computers hardware. Both Nvidia and AMD GPUs have OpenCL runtimes included with their card drivers. However for CPUs, you are required to install a dedicated driver by Intel, found [here](https://software.intel.com/content/www/us/en/develop/articles/opencl-drivers.html) (Intel® CPU Runtime for OpenCL™), or an APP SDK for older AMD processors.
+
+A useful resource for getting OpenCL working on Windows can be found [here](https://streamhpc.com/blog/2015-03-16/how-to-install-opencl-on-windows/).
