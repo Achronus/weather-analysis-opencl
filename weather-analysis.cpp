@@ -28,9 +28,6 @@ int main(int argc, char** argv) {
 		//2.1 Select computing devices
 		cl::Context context = GetContext(helper.platform_id, helper.device_id);
 
-		//display the selected device
-		helper.displayCurrentContext("Running on:");
-
 		//create a queue to which we will push commands for the device
 		cl::CommandQueue queue(context, CL_QUEUE_PROFILING_ENABLE);
 
@@ -62,12 +59,13 @@ int main(int argc, char** argv) {
 		// Start data handling
 		string file_url;
 		file_url = helper.selectFile(file_url); // Select data file
+		bool sortFlag = helper.enableSorting(); // Calculates all stats
 
 		// Read in data
 		vector<mytype> temperatures = parser.readFile(file_url);
 
 		// Set local size variables
-		size_t local_size = 256;
+		size_t local_size = 1024;
 		size_t padding_size = temperatures.size() % local_size;
 		size_t pad_difference = local_size - padding_size;
 		size_t scratch_size = local_size * sizeof(mytype);
@@ -91,7 +89,7 @@ int main(int argc, char** argv) {
 		vector<float> statistics(n_stats);
 
 		// Set kernel related vectors
-		vector<string> kernelNames = { "minReduce", "maxReduce", "sumReduce", "varianceReduce", "selectionSort" };
+		vector<string> kernelNames = { "minReduce", "maxReduce", "sumReduce", "varianceReduce" };
 		vector<cl::Event> events;
 
 		cout << "  Local size set to: " << local_size << endl;
@@ -164,36 +162,40 @@ int main(int argc, char** argv) {
 		//---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 		// Calculate remaining statistics - median, Q1, Q3 (requires sorted vector)
-		// Set kernel variables
-		cl::Event sortEvent;
+		if (sortFlag)
+		{
+			// Set kernel variables
+			cl::Event sortEvent;
 
-		// Create output buffer and fill it with zeros
-		cl::Buffer buffer_sorted = kernel.createBuffer(vec_size);
+			// Create output buffer and fill it with zeros
+			cl::Buffer buffer_sorted = kernel.createBuffer(vec_size);
 
-		// Setup the kernel
-		cl::Kernel sortData = kernel.setupKernel(kernelNames[4], buffer_input, buffer_sorted);
+			// Setup the kernel
+			kernelNames.push_back("selectionSort");
+			cl::Kernel sortData = kernel.setupKernel(kernelNames[4], buffer_input, buffer_sorted);
 
-		// Execute kernel
-		kernel.executeKernel(kernelNames[4], sortData, data_size, NULL, sortEvent);
+			// Execute kernel
+			kernel.executeKernel(kernelNames[4], sortData, data_size, NULL, sortEvent);
 
-		// Copy the result from device to host
-		out_temps = kernel.readKernelBuffer(buffer_sorted, vec_size, out_temps);
+			// Copy the result from device to host
+			out_temps = kernel.readKernelBuffer(buffer_sorted, vec_size, out_temps);
 
-		// Remove padded values from sorted data
-		core_data = parser.removePad(out_temps, pad_value);
+			// Remove padded values from sorted data
+			core_data = parser.removePad(out_temps, pad_value);
 
-		// Add kernel event to events list
-		events.push_back(sortEvent);
-		
-		// Calculate remaining statistics
-		statistics[4] = core_data[round(initial_data_size * 0.5)] / 100.f; // median
-		statistics[5] = core_data[round(initial_data_size * 0.25)] / 100.f; // Q1
-		statistics[6] = core_data[round(initial_data_size * 0.75)] / 100.f; // Q3
+			// Add kernel event to events list
+			events.push_back(sortEvent);
+
+			// Calculate remaining statistics
+			statistics[4] = core_data[round(initial_data_size * 0.5)] / 100.f; // median
+			statistics[5] = core_data[round(initial_data_size * 0.25)] / 100.f; // Q1
+			statistics[6] = core_data[round(initial_data_size * 0.75)] / 100.f; // Q3
+		}
 		//---------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------
 
 		// Output information to console
-		helper.outputInfo(statistics, kernelNames, events);
+		helper.outputInfo(statistics, kernelNames, events, sortFlag);
 	}
 	catch (cl::Error err) {
 		cerr << "\nERROR: " << err.what() << ", " << getErrorString(err.err()) << endl;

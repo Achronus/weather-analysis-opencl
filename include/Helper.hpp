@@ -16,7 +16,7 @@ private:
 	// Used to read in the users input
 	void readInput(string& str)
 	{
-		cerr << "> ";
+		cout << "> ";
 		cin >> str;
 	};
 
@@ -98,35 +98,43 @@ public:
 	// Displays the help menu
 	void printHelp() {
 		displayCurrentContext("Running on:");
-		cerr << "-----------------------------------------------------------------" << endl;
-		cerr << "Choose a command:" << endl;
-		cerr << "-----------------------------------------------------------------" << endl;
-		cerr << "  1 : list and select platforms and devices" << endl;
-		cerr << "  2 : calculate statistics (uses selected platform and device)" << endl;
-		cerr << "  3 : print this message" << endl;
-		cerr << "  4 : exit program" << endl;
-		cerr << "-----------------------------------------------------------------" << endl;
+		cout << "-----------------------------------------------------------------" << endl;
+		cout << "Choose a command:" << endl;
+		cout << "-----------------------------------------------------------------" << endl;
+		cout << "  1 : list and select platforms and devices" << endl;
+		cout << "  2 : calculate statistics (uses selected platform and device)" << endl;
+		cout << "  3 : exit program" << endl;
+		cout << "-----------------------------------------------------------------" << endl;
 	};
 
 	// Displays the platform and device that is active
 	void displayCurrentContext(string str)
 	{
-		cerr << str << endl;
-		cerr << "  Platform " << platform_id << ": " << GetPlatformName(platform_id) << endl;
-		cerr << "  Device   " << device_id << ": " << GetDeviceName(platform_id, device_id) << endl;
-		cerr << endl;
+		cout << str << endl;
+		cout << "  Platform " << platform_id << ": " << GetPlatformName(platform_id) << endl;
+		cout << "  Device   " << device_id << ": " << GetDeviceName(platform_id, device_id) << endl;
+		cout << endl;
 	};
 
 	// Displays the file options menu
 	void displayFileOptions()
 	{
+		displayCurrentContext("Running on:");
 		// Ask user to select file
-		cerr << "Select file:" << endl;
-		cerr << "  1 : Small Lincolnshire Dataset" << endl;
-		cerr << "  2 : Large Lincolnshire Dataset" << endl;
-		cerr << "> ";
-		cin >> consoleInput;
+		cout << "Select file:" << endl;
+		cout << "  1 : Small Lincolnshire Dataset" << endl;
+		cout << "  2 : Large Lincolnshire Dataset" << endl;
 	};
+
+	// Displays the sort menu
+	void displaySortMenu()
+	{
+		displayCurrentContext("Running on:");
+		// Ask user to select what statistics to calculate
+		cout << "Select statistic calculation type:" << endl;
+		cout << "  1 : Min, max, mean, standard deviation (no sorting)" << endl;
+		cout << "  2 : All statistics" << endl;
+	}
 
 	// Handles the main menu functionality
 	void handleInput()
@@ -144,9 +152,9 @@ public:
 					switch (command) {
 					case(1):
 						system("CLS");
-						cerr << ListPlatformsDevices() << endl;
+						cout << ListPlatformsDevices() << endl;
 						displayCurrentContext("Currently selected:");
-						cerr << "Select new platform and device? (Y/N)" << endl;
+						cout << "Select new platform and device? (Y/N)" << endl;
 						changeContext();
 						break;
 					case(2):
@@ -154,46 +162,91 @@ public:
 						system("CLS");
 						break;
 					case(3):
-						system("CLS");
-						printHelp();
-						break;
-					case(4):
 						exit(0);
 						break;
 					default:
-						cerr << "Command number doesn't exist! Input a number between '1' and '4'." << endl;
+						cerr << "Command number doesn't exist! Input a number between '1' and '3'." << endl;
 						break;
 					}
 				}
 			}
 			catch (std::exception& err) {
-				cerr << "Invalid entry. Input a number between '1' and '4'." << endl;
+				cerr << "Invalid entry. Input a number between '1' and '3'." << endl;
 			}
 		}
 	};
 
 	// Assigns the correct file based on the users input
-	string selectFile(string file_url) {
-		if (stoi(consoleInput) == 1) {
-			file_url = "datasets/temp_lincolnshire_short.txt";
+	string selectFile(string file_url) 
+	{
+		while (true) {
+			readInput(consoleInput);
+			if (stoi(consoleInput) == 1) {
+				file_url = "datasets/temp_lincolnshire_short.txt";
+				break;
+			}
+			else if (stoi(consoleInput) == 2) {
+				file_url = "datasets/temp_lincolnshire.txt";
+				break;
+			}
+			else
+				cerr << "Invalid file number selected. Choose '1' or '2'." << endl;			
 		}
-		else if (stoi(consoleInput) == 2) {
-			file_url = "datasets/temp_lincolnshire.txt";
-		}
-		else {
-			cerr << "Invalid file number selected. Choose '1' or '2'." << endl;
-		}
+		system("CLS");
 		return file_url;
 	}
 
-	// Outputs the statistics and kernel information at the end of the program
-	void outputInfo(vector<float>& statistics, vector<string>& kernel_names, vector<cl::Event>& kernel_events)
+	// Run the program with sorting or without sorting
+	bool enableSorting() 
 	{
-		vector<string> stat_names = { "Min Value", "Max Value", "Mean ", "Standard Deviation", "Median", "1st Quartile", "3rd Quartile" };
+		displaySortMenu();
+		while (true) {
+			readInput(consoleInput);
+			if (stoi(consoleInput) == 1)
+				return false;
+			else if (stoi(consoleInput) == 2)
+				return true;
+			else
+				cerr << "Invalid file number selected. Choose '1' or '2'." << endl;
+		}
+	}
+
+	// Create table divider dynamically, used for top and bottom of table
+	void tableFormatting(int strLen)
+	{
+		// Table header format
+		cout << "|";
+		for (int i = 0; i < strLen - 1; i++)
+			cout << "-";
+		cout << "|" << endl;
+	}
+
+	// Outputs the statistics and kernel information at the end of the program
+	void outputInfo(vector<float>& statistics, vector<string>& kernel_names, vector<cl::Event>& kernel_events, bool sortFlag)
+	{
+		vector<string> stat_names = { "Min Value", "Max Value", "Mean ", "Standard Deviation" };
 		float total_seconds = 0.;
 
+		// Add additional names if sorting enabled
+		if (sortFlag) {
+			stat_names.push_back("Median");
+			stat_names.push_back("1st Quartile");
+			stat_names.push_back("3rd Quartile");
+		}
+
+		// Calculate length of string
+		int strLen = 0;
+		for (int i = 0; i < stat_names.size(); i++)
+		{
+			strLen += stat_names[i].length();
+			strLen += 3;
+		}
+
+		// Table header format
+		cout << "\nStatistic Results:" << endl;
+		tableFormatting(strLen);
+
 		// Statistic names
-		cout << "\n|-------------------------------------------------------------------------------------------|" << endl;
 		for (int i = 0; i < stat_names.size(); i++)
 		{
 			cout << "| " << stat_names[i] << " ";
@@ -201,16 +254,18 @@ public:
 		cout << "|" << endl;
 
 		// Statistic results
-		for (int i = 0; i < statistics.size(); i++)
+		for (int i = 0; i < stat_names.size(); i++)
 		{
 			int length = stat_names[i].length();
 			cout << std::left << "| " << setfill(' ') << setw(static_cast<streamsize>(length) + 1) << fixed << setprecision(3) << statistics[i];
 		}
 		cout << "|" << endl;
-		cout << "|-------------------------------------------------------------------------------------------|" << endl;
-		cout << "\nKernel execution times:" << endl;
+
+		// Table footer format
+		tableFormatting(strLen);
 
 		// Kernel run times
+		cout << "\nKernel execution times:" << endl;
 		for (int i = 0; i < kernel_names.size(); i++)
 		{
 			float nanoseconds = kernel_events[i].getProfilingInfo<CL_PROFILING_COMMAND_END>() - kernel_events[i].getProfilingInfo<CL_PROFILING_COMMAND_START>();
