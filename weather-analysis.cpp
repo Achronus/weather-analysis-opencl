@@ -186,8 +186,19 @@ int main(int argc, char** argv) {
 			// Add kernel event to events list
 			events.push_back(sortEvent);
 
+			// Calculate median
+			if (initial_data_size % 2 == 0)
+			{
+				// Even dataset size
+				unsigned int half_size = initial_data_size / 2;
+				mytype half_avg = (core_data[half_size] + core_data[half_size + 1]) / 2;
+				statistics[4] = half_avg / 100.f;
+			}
+			// Odd dataset size
+			else
+				statistics[4] = core_data[round(initial_data_size * 0.5)] / 100.f;
+
 			// Calculate remaining statistics
-			statistics[4] = core_data[round(initial_data_size * 0.5)] / 100.f; // median
 			statistics[5] = core_data[round(initial_data_size * 0.25)] / 100.f; // Q1
 			statistics[6] = core_data[round(initial_data_size * 0.75)] / 100.f; // Q3
 		}
